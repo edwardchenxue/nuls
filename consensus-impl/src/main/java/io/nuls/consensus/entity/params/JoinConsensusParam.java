@@ -36,6 +36,7 @@ public class JoinConsensusParam {
     public static final String DEPOSIT = "deposit";
     public static final String AGENT_ADDRESS = "agentAddress";
     public static final String INTRODUCTION = "introduction";
+    public static final String COMMISSION_RATE = "commissionRate";
 
     private final Map<String, Object> params;
 
@@ -60,6 +61,10 @@ public class JoinConsensusParam {
 
     public String getIntroduction() {
         return (String) params.get(INTRODUCTION);
+    }
+
+    public Double getCommissionRate() {
+        return (Double) params.get(COMMISSION_RATE);
     }
 
 }

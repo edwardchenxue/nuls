@@ -28,8 +28,10 @@ import io.nuls.consensus.event.BlocksHashEvent;
 import io.nuls.consensus.event.GetBlocksHashRequest;
 import io.nuls.consensus.service.intf.BlockService;
 import io.nuls.core.chain.entity.Block;
+import io.nuls.core.chain.entity.BlockHeader;
 import io.nuls.core.chain.entity.NulsDigestData;
 import io.nuls.core.context.NulsContext;
+import io.nuls.core.utils.log.Log;
 import io.nuls.event.bus.handler.AbstractEventHandler;
 import io.nuls.event.bus.service.intf.EventBroadcaster;
 
@@ -47,31 +49,35 @@ public class GetBlocksHashHandler extends AbstractEventHandler<GetBlocksHashRequ
 
     @Override
     public void onEvent(GetBlocksHashRequest event, String fromId) {
-
-        boolean b = event.getStart() == event.getEnd();
+        if (event.getEventBody().getEnd() > NulsContext.getInstance().getBestBlock().getHeader().getHeight()) {
+            return;
+        }
+        boolean b = event.getEventBody().getStart() == event.getEventBody().getEnd();
         if (b) {
             BlockHashResponse response = new BlockHashResponse();
             Block block;
-            if (event.getEnd() == 0) {
+            if (event.getEventBody().getEnd() <= 0) {
                 block = blockService.getLocalBestBlock();
             } else {
-                block = blockService.getBlock(event.getEnd());
+                block = blockService.getBlock(event.getEventBody().getEnd());
             }
             if (null == block) {
-                return;
+                block = blockService.getLocalBestBlock();
             }
             response.put(block.getHeader().getHeight(), block.getHeader().getHash());
-            sendResponse(response,fromId);
+            sendResponse(response, fromId);
         } else {
-            List<NulsDigestData> list = this.blockService.getBlockHashList(event.getStart(), event.getEnd(), event.getSplit());
+            List<BlockHeader> list = this.blockService.getBlockHashList(event.getEventBody().getStart(), event.getEventBody().getEnd(), event.getEventBody().getSplit());
             List<Long> resultHeightList = new ArrayList<>();
             List<NulsDigestData> resultHashList = new ArrayList<>();
             for (int i = 0; i < list.size(); i++) {
-                long height = i + event.getStart();
-                if (i % event.getSplit() == 0) {
-                    resultHeightList.add(height);
-                    resultHashList.add(list.get(i));
-                }
+                resultHeightList.add(list.get(i).getHeight());
+                resultHashList.add(list.get(i).getHash());
+            }
+            if (resultHeightList.isEmpty() || resultHeightList.get(resultHeightList.size() - 1) < event.getEventBody().getEnd()) {
+                Block block = this.blockService.getBlock(event.getEventBody().getEnd());
+                resultHeightList.add(block.getHeader().getHeight());
+                resultHashList.add(block.getHeader().getHash());
             }
             final int size = 50000;
             for (int i = 0; i < resultHashList.size(); i += size) {
@@ -82,7 +88,7 @@ public class GetBlocksHashHandler extends AbstractEventHandler<GetBlocksHashRequ
                 }
                 response.setHeightList(resultHeightList.subList(i, end));
                 response.setHashList(resultHashList.subList(i, end));
-                sendResponse(response,fromId);
+                sendResponse(response, fromId);
             }
         }
     }
@@ -90,6 +96,6 @@ public class GetBlocksHashHandler extends AbstractEventHandler<GetBlocksHashRequ
     private void sendResponse(BlockHashResponse response, String fromId) {
         BlocksHashEvent event = new BlocksHashEvent();
         event.setEventBody(response);
-        eventBroadcaster.sendToNode(event,fromId);
+        boolean result = eventBroadcaster.sendToNode(event, fromId);
     }
 }

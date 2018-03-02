@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -77,13 +77,6 @@ public abstract class BaseModuleBootstrap {
     public abstract String getInfo();
 
     /**
-     * get the version of the module
-     *
-     * @return
-     */
-    public abstract int getVersion();
-
-    /**
      * get the status of the module
      *
      * @return
@@ -103,8 +96,6 @@ public abstract class BaseModuleBootstrap {
 
     protected final String getModuleCfgProperty(String section, String property) {
         try {
-            System.out.println(section);
-            System.out.println(property);
             return NulsContext.MODULES_CONFIG.getCfgValue(section, property);
         } catch (NulsException e) {
             Log.error(e);

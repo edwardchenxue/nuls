@@ -28,7 +28,9 @@ import io.nuls.core.chain.entity.NulsDigestData;
 import io.nuls.core.context.NulsContext;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Niels
@@ -49,28 +51,33 @@ public class BifurcateProcessor {
         return INSTANCE;
     }
 
-    public void addHeader(BlockHeader header) {
+    public boolean addHeader(BlockHeader header) {
         for (BlockHeaderChain chain : chainList) {
-            int index = chain.indexOf(header.getPreHash().getDigestHex(), header.getHeight()-1);
+            if (chain.contains(header)) {
+                return false;
+            }
+        }
+        for (BlockHeaderChain chain : chainList) {
+            int index = chain.indexOf(header.getPreHash().getDigestHex(), header.getHeight() - 1);
             if (index == chain.size() - 1) {
                 chain.addHeader(header);
                 setBestHeight(header);
-                return;
+                return true;
             } else if (index >= 0) {
                 BlockHeaderChain newChain = chain.getBifurcateChain(header);
                 chainList.add(newChain);
                 setBestHeight(header);
-                return;
+                return true;
             }
         }
-        if ((bestHeight+1) != header.getHeight()) {
-            return;
+        if ((bestHeight + 1) != header.getHeight()) {
+            return false;
         }
         BlockHeaderChain chain = new BlockHeaderChain();
         chain.addHeader(header);
         chainList.add(chain);
         setBestHeight(header);
-
+        return true;
     }
 
     private void setBestHeight(BlockHeader header) {
@@ -98,7 +105,7 @@ public class BifurcateProcessor {
 
 
     public long getBestHeight() {
-        if(bestHeight==0){
+        if (bestHeight == 0 && null != NulsContext.getInstance().getBestBlock()) {
             bestHeight = NulsContext.getInstance().getBestBlock().getHeader().getHeight();
         }
         return bestHeight;
@@ -125,13 +132,13 @@ public class BifurcateProcessor {
     }
 
     public List<String> getHashList(long height) {
-        List<String> list = new ArrayList<>();
+        Set<String> set = new HashSet<>();
         for (BlockHeaderChain chain : this.chainList) {
             HeaderDigest headerDigest = chain.getHeaderDigest(height);
             if (null != headerDigest) {
-                list.add(headerDigest.getHash());
+                set.add(headerDigest.getHash());
             }
         }
-        return list;
+        return new ArrayList<>(set);
     }
 }

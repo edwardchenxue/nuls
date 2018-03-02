@@ -24,7 +24,6 @@
 package io.nuls.consensus.module.impl;
 
 import io.nuls.consensus.constant.ConsensusStatusEnum;
-import io.nuls.consensus.constant.PocConsensusConstant;
 import io.nuls.consensus.entity.ConsensusStatusInfo;
 import io.nuls.consensus.entity.tx.*;
 import io.nuls.consensus.entity.validator.PocBlockValidatorManager;
@@ -35,14 +34,12 @@ import io.nuls.consensus.module.AbstractConsensusModule;
 import io.nuls.consensus.service.impl.BlockServiceImpl;
 import io.nuls.consensus.service.impl.PocConsensusServiceImpl;
 import io.nuls.consensus.service.intf.BlockService;
-import io.nuls.consensus.service.intf.ConsensusService;
 import io.nuls.consensus.service.tx.*;
 import io.nuls.core.constant.ModuleStatusEnum;
 import io.nuls.core.constant.TransactionConstant;
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.thread.BaseThread;
 import io.nuls.core.thread.manager.TaskManager;
-import io.nuls.core.utils.aop.AopUtils;
 import io.nuls.core.utils.log.Log;
 import io.nuls.event.bus.service.intf.EventBusService;
 import io.nuls.ledger.event.TransactionEvent;
@@ -63,31 +60,36 @@ public class PocConsensusModuleBootstrap extends AbstractConsensusModule {
     public void init() {
         PocBlockValidatorManager.initHeaderValidators();
         PocBlockValidatorManager.initBlockValidators();
-        initTransactions();
-        this.registerService(BlockServiceImpl.class );
-        this.registerService(PocConsensusServiceImpl.class );
-
-    }
-
-    private void initTransactions() {
         this.registerTransaction(TransactionConstant.TX_TYPE_REGISTER_AGENT, RegisterAgentTransaction.class, new RegisterAgentTxService());
         this.registerTransaction(TransactionConstant.TX_TYPE_RED_PUNISH, RedPunishTransaction.class, new RedPunishTxService());
         this.registerTransaction(TransactionConstant.TX_TYPE_YELLOW_PUNISH, YellowPunishTransaction.class, new YellowPunishTxService());
         this.registerTransaction(TransactionConstant.TX_TYPE_JOIN_CONSENSUS, PocJoinConsensusTransaction.class, new JoinConsensusTxService());
         this.registerTransaction(TransactionConstant.TX_TYPE_EXIT_CONSENSUS, PocExitConsensusTransaction.class, new ExitConsensusTxService());
+        this.registerService(BlockServiceImpl.class);
+        this.registerService(PocConsensusServiceImpl.class);
+
     }
 
     @Override
     public void start() {
+        this.registerHandlers();
         consensusManager.init();
         NulsContext.getInstance().setBestBlock(NulsContext.getServiceBean(BlockService.class).getLocalBestBlock());
         this.consensusManager.startMaintenanceWork();
-        ConsensusStatusInfo statusInfo = consensusManager.getConsensusStatusInfo();
-        if (null!=statusInfo&&statusInfo.getStatus() != ConsensusStatusEnum.NOT_IN.getCode()) {
-            consensusManager.joinMeeting();
-        }
+//        while (true) {
+//            if (BlockMaintenanceThread.getInstance().isSuccess()) {
+//                break;
+//            }
+//            try {
+//                Log.info("synchronization blocks5 is not completed");
+//                Thread.sleep(1000L);
+//            } catch (InterruptedException e) {
+//                Log.error(e);
+//            }
+//        }
+        consensusManager.joinMeeting();
         consensusManager.startPersistenceWork();
-        this.registerHandlers();
+
         Log.info("the POC consensus module is started!");
 
     }
@@ -101,10 +103,10 @@ public class PocConsensusModuleBootstrap extends AbstractConsensusModule {
         eventBusService.subscribeEvent(BlockHeaderEvent.class, blockHeaderHandler);
 
         GetBlockHandler getBlockHandler = new GetBlockHandler();
-        eventBusService.subscribeEvent(GetSmallBlockRequest.class, getBlockHandler);
+        eventBusService.subscribeEvent(GetBlockRequest.class, getBlockHandler);
 
-        GetTxGroupHandler getSmallBlockHandler = new GetTxGroupHandler();
-        eventBusService.subscribeEvent(GetSmallBlockRequest.class, getSmallBlockHandler);
+        GetTxGroupHandler getTxGroupHandler = new GetTxGroupHandler();
+        eventBusService.subscribeEvent(GetTxGroupRequest.class, getTxGroupHandler);
 
         GetBlockHeaderHandler getBlockHeaderHandler = new GetBlockHeaderHandler();
         eventBusService.subscribeEvent(GetBlockHeaderEvent.class, getBlockHeaderHandler);
@@ -116,11 +118,10 @@ public class PocConsensusModuleBootstrap extends AbstractConsensusModule {
         eventBusService.subscribeEvent(TransactionEvent.class, newTxEventHandler);
 
 
-
-        eventBusService.subscribeEvent(BlocksHashEvent.class,new BlocksHashHandler());
-        eventBusService.subscribeEvent(GetBlocksHashRequest.class,new GetBlocksHashHandler());
+        eventBusService.subscribeEvent(BlocksHashEvent.class, new BlocksHashHandler());
+        eventBusService.subscribeEvent(GetBlocksHashRequest.class, new GetBlocksHashHandler());
         eventBusService.subscribeEvent(GetSmallBlockRequest.class,new GetSmallBlockHandler());
-        eventBusService.subscribeEvent(SmallBlockEvent.class,new SmallBlockHandler());
+        eventBusService.subscribeEvent(SmallBlockEvent.class, new SmallBlockHandler());
     }
 
 
@@ -164,11 +165,6 @@ public class PocConsensusModuleBootstrap extends AbstractConsensusModule {
             }
         }
         return str.toString();
-    }
-
-    @Override
-    public int getVersion() {
-        return PocConsensusConstant.POC_CONSENSUS_MODULE_VERSION;
     }
 
 }

@@ -26,6 +26,7 @@ package io.nuls.consensus.cache.manager.block;
 import io.nuls.cache.util.CacheMap;
 import io.nuls.consensus.constant.ConsensusCacheConstant;
 import io.nuls.consensus.constant.PocConsensusConstant;
+import io.nuls.consensus.entity.GetBlockHeaderParam;
 import io.nuls.consensus.entity.block.BifurcateProcessor;
 import io.nuls.consensus.entity.block.BlockHeaderChain;
 import io.nuls.consensus.entity.block.HeaderDigest;
@@ -48,11 +49,10 @@ import java.util.List;
  * @date 2017/12/12
  */
 public class BlockCacheManager {
-    private static final String HEIGHT_HASH_CACHE = "blocks-height-hash";
     private static final BlockCacheManager INSTANCE = new BlockCacheManager();
 
-    private EventBroadcaster eventBroadcaster = NulsContext.getServiceBean(EventBroadcaster.class);
-    private LedgerService ledgerService = NulsContext.getServiceBean(LedgerService.class);
+    private EventBroadcaster eventBroadcaster;
+    private LedgerService ledgerService;
 
     private CacheMap<String, BlockHeader> headerCacheMap;
     private CacheMap<String, Block> blockCacheMap;
@@ -62,6 +62,7 @@ public class BlockCacheManager {
     private BifurcateProcessor bifurcateProcessor = BifurcateProcessor.getInstance();
 
     private long storedHeight;
+    private long recievedMaxHeight;
 
     private BlockCacheManager() {
     }
@@ -71,6 +72,8 @@ public class BlockCacheManager {
     }
 
     public void init() {
+        eventBroadcaster = NulsContext.getServiceBean(EventBroadcaster.class);
+        ledgerService = NulsContext.getServiceBean(LedgerService.class);
         smallBlockCacheMap = new CacheMap<>(ConsensusCacheConstant.SMALL_BLOCK_CACHE_NAME, 32, ConsensusCacheConstant.LIVE_TIME, 0);
         blockCacheMap = new CacheMap<>(ConsensusCacheConstant.BLOCK_CACHE_NAME, 64, ConsensusCacheConstant.LIVE_TIME, 0);
         headerCacheMap = new CacheMap<>(ConsensusCacheConstant.BLOCK_HEADER_CACHE_NAME, 32, ConsensusCacheConstant.LIVE_TIME, 0);
@@ -92,11 +95,11 @@ public class BlockCacheManager {
             long nextHeight = 1 + bifurcateProcessor.getBestHeight();
             if (height > nextHeight) {
                 headerCacheMap.put(header.getHash().getDigestHex(), header);
-                GetBlockHeaderEvent event = new GetBlockHeaderEvent();
-                event.setEventBody(new BasicTypeData<>(height - 1));
-                if (null != sender) {
-                    eventBroadcaster.sendToNode(event, sender);
+                if (header.getHeight() > this.recievedMaxHeight) {
+                    this.recievedMaxHeight = header.getHeight();
                 }
+                askNextHeader(nextHeight, sender);
+
                 discard = true;
                 break;
             }
@@ -132,6 +135,10 @@ public class BlockCacheManager {
 
     public void cacheBlock(Block block) {
         blockCacheMap.put(block.getHeader().getHash().getDigestHex(), block);
+        boolean b = this.bifurcateProcessor.addHeader(block.getHeader());
+        if (b) {
+            NulsContext.getInstance().setBestBlock(block);
+        }
         //txs approval
         BlockHeader header = this.getBlockHeader(block.getHeader().getHeight());
         if (null == header) {
@@ -249,7 +256,7 @@ public class BlockCacheManager {
 
     public Block getBlock(long height) {
         String hash = getDigestHex(height);
-        if(hash==null){
+        if (hash == null) {
             return null;
         }
         return blockCacheMap.get(hash);
@@ -257,15 +264,15 @@ public class BlockCacheManager {
 
     public BlockHeader getBlockHeader(long height) {
         String hash = getDigestHex(height);
-        if(hash==null){
+        if (hash == null) {
             return null;
         }
         return headerCacheMap.get(hash);
     }
 
-    public String getDigestHex(long height){
+    public String getDigestHex(long height) {
         List<String> hashList = bifurcateProcessor.getHashList(height);
-        if (null == hashList||hashList.isEmpty()||hashList.size()>1) {
+        if (null == hashList || hashList.isEmpty() || hashList.size() > 1) {
             return null;
         }
         return (hashList.get(0));
@@ -273,5 +280,18 @@ public class BlockCacheManager {
 
     public boolean canPersistence() {
         return null != bifurcateProcessor.getLongestChain() && bifurcateProcessor.getLongestChain().size() > PocConsensusConstant.CONFIRM_BLOCK_COUNT;
+    }
+
+    public long getRecievedMaxHeight() {
+        return recievedMaxHeight;
+    }
+
+    public void askNextHeader(long nextHeight, String nodeId) {
+        if (null == nodeId) {
+            return;
+        }
+        GetBlockHeaderEvent event = new GetBlockHeaderEvent();
+        event.setEventBody(new GetBlockHeaderParam(nextHeight));
+        eventBroadcaster.sendToNode(event, nodeId);
     }
 }

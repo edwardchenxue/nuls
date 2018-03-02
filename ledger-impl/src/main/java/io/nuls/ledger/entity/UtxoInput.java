@@ -46,6 +46,8 @@ public class UtxoInput extends BaseNulsData {
 
     private int index;
 
+    private NulsDigestData fromHash;
+
     private int fromIndex;
 
     private NulsSignData sign;
@@ -54,7 +56,7 @@ public class UtxoInput extends BaseNulsData {
 
     private Transaction parent;
 
-    // key = txHash + "-" + fromIndex, a key that will not be serialized, only used for caching
+    // key = fromHash + "-" + fromIndex, a key that will not be serialized, only used for caching
     private String key;
 
     public UtxoInput() {
@@ -104,7 +106,7 @@ public class UtxoInput extends BaseNulsData {
     }
 
     public NulsDigestData getTxHash() {
-        if(txHash == null && parent != null) {
+        if (txHash == null && parent != null) {
             this.txHash = parent.getHash();
         }
         return txHash;
@@ -155,13 +157,21 @@ public class UtxoInput extends BaseNulsData {
     }
 
     public String getKey() {
-        if(StringUtils.isBlank(key)) {
-            key = txHash.getDigestHex() + "-" + fromIndex;
+        if (StringUtils.isBlank(key)) {
+            key = fromHash.getDigestHex() + "-" + fromIndex;
         }
         return key;
     }
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    public NulsDigestData getFromHash() {
+        return fromHash;
+    }
+
+    public void setFromHash(NulsDigestData fromHash) {
+        this.fromHash = fromHash;
     }
 }

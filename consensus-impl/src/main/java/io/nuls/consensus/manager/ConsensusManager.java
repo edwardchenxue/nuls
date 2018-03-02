@@ -123,16 +123,6 @@ public class ConsensusManager implements Runnable {
     }
 
     public void initConsensusStatusInfo() {
-
-        if (null == NulsContext.LOCAL_ADDRESS_LIST || NulsContext.LOCAL_ADDRESS_LIST.isEmpty()) {
-            try {
-                Thread.sleep(5000L);
-            } catch (InterruptedException e) {
-                Log.error(e);
-            }
-            initConsensusStatusInfo();
-            return;
-        }
         List<Consensus<Agent>> agentList = consensusCacheManager.getCachedAgentList();
         ConsensusStatusInfo info = new ConsensusStatusInfo();
         for (String address : NulsContext.LOCAL_ADDRESS_LIST) {
@@ -152,20 +142,12 @@ public class ConsensusManager implements Runnable {
             }
         }
         if (info.getAddress() == null) {
-            try {
-                Thread.sleep(5000L);
-            } catch (InterruptedException e) {
-                Log.error(e);
-            }
-            return;
+            info.setStatus(ConsensusStatusEnum.NOT_IN.getCode());
         }
         this.consensusStatusInfo = info;
     }
 
     public void joinMeeting() {
-        if (null == this.consensusStatusInfo) {
-            return;
-        }
         TaskManager.createAndRunThread(NulsConstant.MODULE_ID_CONSENSUS,
                 ConsensusMeetingRunner.THREAD_NAME,
                 ConsensusMeetingRunner.getInstance());
@@ -187,6 +169,7 @@ public class ConsensusManager implements Runnable {
         try {
             blockMaintenanceThread.checkGenesisBlock();
             blockMaintenanceThread.syncBlock();
+
         } catch (Exception e) {
             Log.error(e.getMessage());
         } finally {

@@ -28,10 +28,13 @@ import io.nuls.account.entity.Address;
 import io.nuls.account.service.intf.AccountService;
 import io.nuls.core.chain.entity.Na;
 import io.nuls.core.chain.entity.Result;
+import io.nuls.core.constant.ErrorCode;
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.utils.crypto.Hex;
+import io.nuls.core.utils.str.StringUtils;
 import io.nuls.ledger.entity.Balance;
 import io.nuls.ledger.service.intf.LedgerService;
+import io.nuls.rpc.entity.AccountDto;
 import io.nuls.rpc.entity.RpcResult;
 
 import javax.ws.rs.*;
@@ -48,28 +51,59 @@ public class AccountResource {
     private AccountService accountService = NulsContext.getServiceBean(AccountService.class);
     private LedgerService ledgerService = NulsContext.getServiceBean(LedgerService.class);
 
-    @POST
+    @GET
+    @Path("/create/{count}")
     @Produces(MediaType.APPLICATION_JSON)
     public RpcResult create(@QueryParam("count") Integer count) {
-        RpcResult result = RpcResult.getSuccess();
-        Result<List<String>> accountReslut = accountService.createAccount(count);
-        result.setData(accountReslut.getObject());
+        Result<List<String>> accountResult = accountService.createAccount(count);
+        RpcResult result = new RpcResult(accountResult);
         return result;
     }
 
-
     @GET
-    @Path("/{address}")
+    @Path("/load/{address}")
     @Produces(MediaType.APPLICATION_JSON)
     public RpcResult load(@PathParam("address") String address) {
-        RpcResult result = RpcResult.getSuccess();
+        RpcResult result;
+        if (!StringUtils.validAddress(address)) {
+            result = RpcResult.getFailed(ErrorCode.PARAMETER_ERROR);
+            return result;
+        }
+
         Account account = accountService.getAccount(address);
-        result.setData(account);
+        if (account == null) {
+            result = RpcResult.getFailed(ErrorCode.DATA_NOT_FOUND);
+        } else {
+            result = RpcResult.getSuccess();
+            result.setData(new AccountDto(account));
+        }
+        return result;
+    }
+
+    @POST
+    @Path("/alias")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RpcResult alias(@FormParam("alias") String alias,
+                           @FormParam("address") String address,
+                           @FormParam("password") String password) {
+
+        Result result = accountService.setAlias(address, password, alias);
+        RpcResult rpcResult = new RpcResult(result);
+        return rpcResult;
+    }
+
+    @GET
+    @Path("/list")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RpcResult accountList() {
+        RpcResult<List<Account>> result = RpcResult.getSuccess();
+        List<Account> list = accountService.getAccountList();
+        result.setData(list);
         return result;
     }
 
     @GET
-    @Path("/{address}/balance")
+    @Path("/balance/{address}")
     @Produces(MediaType.APPLICATION_JSON)
     public RpcResult getBalance(@PathParam("address") String address) {
         Balance balance = ledgerService.getBalance(address);
@@ -79,7 +113,7 @@ public class AccountResource {
     }
 
     @GET
-    @Path("/{address}/prikey")
+    @Path("/prikey/{address}")
     @Produces(MediaType.APPLICATION_JSON)
     public RpcResult getPrikey(@PathParam("address") String address, @QueryParam("password") String password) {
         RpcResult result = RpcResult.getSuccess();
@@ -92,7 +126,7 @@ public class AccountResource {
     @Path("/address")
     @Produces(MediaType.APPLICATION_JSON)
     public RpcResult getAddress(@QueryParam("publicKey") String publicKey, @QueryParam("subChainId") Integer subChainId) {
-        Address address = new Address((short)subChainId.intValue(), Hex.decode(publicKey));
+        Address address = new Address((short) subChainId.intValue(), Hex.decode(publicKey));
         RpcResult result = RpcResult.getSuccess();
         result.setData(address.toString());
         return result;

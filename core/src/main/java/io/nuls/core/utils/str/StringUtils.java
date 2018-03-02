@@ -23,13 +23,10 @@
  */
 package io.nuls.core.utils.str;
 
-import io.nuls.core.constant.NulsConstant;
 import io.nuls.core.context.NulsContext;
 
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Created by Niels on 2017/10/9.
@@ -94,10 +91,22 @@ public class StringUtils {
         return true;
     }
 
+    public static boolean validAddress(String address) {
+        if (isBlank(address)) return false;
+        if (address.length() > 35) return false;
+        return true;
+    }
+
+    public static boolean validHash(String hash) {
+        if (isBlank(hash)) return false;
+        if (hash.length() > 73) return false;
+        return true;
+    }
+
 
     public static byte caculateXor(byte[] data) {
         byte xor = 0x00;
-        if(data == null || data.length == 0) {
+        if (data == null || data.length == 0) {
             return xor;
         }
         for (int i = 0; i < data.length; i++) {

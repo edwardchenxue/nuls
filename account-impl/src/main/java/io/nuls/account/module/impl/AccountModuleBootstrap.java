@@ -23,7 +23,6 @@
  */
 package io.nuls.account.module.impl;
 
-import io.nuls.account.constant.AccountConstant;
 import io.nuls.account.entity.tx.AliasTransaction;
 import io.nuls.account.module.intf.AbstractAccountModule;
 import io.nuls.account.service.impl.AccountCacheService;
@@ -44,9 +43,9 @@ public class AccountModuleBootstrap extends AbstractAccountModule {
 
     @Override
     public void init() {
-        cacheService = AccountCacheService.getInstance();
         this.registerService(AccountServiceImpl.class);
         accountService = NulsContext.getServiceBean(AccountService.class);
+        cacheService = AccountCacheService.getInstance();
         this.registerTransaction(TransactionConstant.TX_TYPE_SET_ALIAS, AliasTransaction.class,AliasTxService.getInstance());
     }
 
@@ -69,10 +68,5 @@ public class AccountModuleBootstrap extends AbstractAccountModule {
     @Override
     public String getInfo() {
         return "account module is " + this.getStatus();
-    }
-
-    @Override
-    public int getVersion() {
-        return AccountConstant.ACCOUNT_MODULE_VERSION;
     }
 }

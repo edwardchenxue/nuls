@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,11 +24,14 @@
 package io.nuls.network.service.impl;
 
 import io.nuls.core.constant.NulsConstant;
+import io.nuls.core.context.NulsContext;
 import io.nuls.core.event.BaseEvent;
 import io.nuls.core.event.EventManager;
 import io.nuls.core.exception.NulsException;
 import io.nuls.core.mesasge.NulsMessage;
 import io.nuls.core.thread.manager.TaskManager;
+import io.nuls.core.utils.crypto.Hex;
+import io.nuls.core.utils.log.Log;
 import io.nuls.event.bus.service.intf.EventBusService;
 import io.nuls.network.constant.NetworkConstant;
 import io.nuls.network.entity.Node;
@@ -70,7 +73,7 @@ public class ConnectionManager {
     public void init() {
         nettyServer = new NettyServer(network.port());
         nettyServer.init();
-//        eventBusService = NulsContext.getServiceBean(EventBusService.class);
+        eventBusService = NulsContext.getServiceBean(EventBusService.class);
         messageHandlerFactory = network.getMessageHandlerFactory();
     }
 
@@ -81,7 +84,7 @@ public class ConnectionManager {
                 try {
                     nettyServer.start();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Log.error(e);
                 }
             }
         }, false);
@@ -118,10 +121,10 @@ public class ConnectionManager {
             }
         } catch (NulsException e) {
             //todo
-            e.printStackTrace();
+            Log.error(e);
         } catch (Exception e) {
             //todo
-            e.printStackTrace();
+            Log.error(e);
             return;
         } finally {
             buffer.clear();
@@ -151,7 +154,7 @@ public class ConnectionManager {
                     NetworkEventResult messageResult = handler.process(networkEvent, node);
                     processMessageResult(messageResult, node);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.error(e);
                 }
             }
         });

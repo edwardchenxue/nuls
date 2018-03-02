@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,9 +27,7 @@ import io.nuls.core.chain.manager.TransactionValidatorManager;
 import io.nuls.core.constant.TransactionConstant;
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.thread.manager.TaskManager;
-import io.nuls.db.dao.UtxoInputDataService;
 import io.nuls.db.dao.UtxoOutputDataService;
-import io.nuls.ledger.constant.LedgerConstant;
 import io.nuls.ledger.entity.listener.CoinDataTxService;
 import io.nuls.ledger.entity.tx.CoinBaseTransaction;
 import io.nuls.ledger.entity.tx.LockNulsTransaction;
@@ -40,7 +38,6 @@ import io.nuls.ledger.service.impl.LedgerCacheService;
 import io.nuls.ledger.service.impl.UtxoCoinDataProvider;
 import io.nuls.ledger.service.impl.UtxoCoinManager;
 import io.nuls.ledger.service.impl.UtxoLedgerServiceImpl;
-import io.nuls.ledger.service.intf.CoinDataProvider;
 import io.nuls.ledger.service.intf.LedgerService;
 import io.nuls.ledger.thread.SmallChangeThread;
 import io.nuls.ledger.validator.TxFieldValidator;
@@ -63,12 +60,13 @@ public class UtxoLedgerModuleBootstrap extends AbstractLedgerModule {
 
     @Override
     public void init() {
-        cacheService = LedgerCacheService.getInstance();
         registerService();
         ledgerService = NulsContext.getServiceBean(LedgerService.class);
-        coinManager = UtxoCoinManager.getInstance();
         UtxoOutputDataService outputDataService = NulsContext.getServiceBean(UtxoOutputDataService.class);
+
+        coinManager = UtxoCoinManager.getInstance();
         coinManager.setOutputDataService(outputDataService);
+        cacheService = LedgerCacheService.getInstance();
         addNormalTxValidator();
         this.registerTransaction(TransactionConstant.TX_TYPE_COIN_BASE, CoinBaseTransaction.class, CoinDataTxService.getInstance());
         this.registerTransaction(TransactionConstant.TX_TYPE_TRANSFER, TransferTransaction.class, CoinDataTxService.getInstance());
@@ -116,8 +114,4 @@ public class UtxoLedgerModuleBootstrap extends AbstractLedgerModule {
         return null;
     }
 
-    @Override
-    public int getVersion() {
-        return LedgerConstant.LEDGER_MODULE_VERSION;
-    }
 }

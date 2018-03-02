@@ -40,10 +40,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ModuleRunner implements Runnable {
 
-    private ModuleManager moduleManager = ModuleManager.getInstance();
-
-    private static final AtomicInteger COUNT = new AtomicInteger(0);
-
     private final String moduleKey;
     private final String moduleClass;
     private BaseModuleBootstrap module;
@@ -60,17 +56,6 @@ public class ModuleRunner implements Runnable {
             module.setStatus(ModuleStatusEnum.INITIALIZING);
             module.init();
             module.setStatus(ModuleStatusEnum.INITIALIZED);
-            COUNT.getAndIncrement();
-            long startTime = System.currentTimeMillis();
-//            todo
-//            while (true) {
-//                if (COUNT.intValue() == moduleManager.getModulesCfg().size()) {
-//                    break;
-//                }
-//                if (System.currentTimeMillis() - startTime >= NulsConstant.MODULE_LOAD_WAIT_TIME) {
-//                    throw new NulsRuntimeException(ErrorCode.MODULE_LOAD_TIME_OUT);
-//                }
-//            }
             module.setStatus(ModuleStatusEnum.STARTING);
             module.start();
             module.setStatus(ModuleStatusEnum.RUNNING);

@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Niels
@@ -46,11 +47,11 @@ public class ModuleManager {
 
     private Map<String,String> modulesCfg ;
 
-    private final Map<Short, ModuleProcess> PROCCESS_MAP = new HashMap<>();
+    private final Map<Short, ModuleProcess> PROCCESS_MAP = new ConcurrentHashMap<>();
 
     private ModuleProcessFactory factory = new ModuleProcessFactory();
 
-    private static final Map<Short, BaseModuleBootstrap> MODULE_MAP = new HashMap<>();
+    private static final Map<Short, BaseModuleBootstrap> MODULE_MAP = new ConcurrentHashMap<>();
 
     private static final ModuleManager MANAGER = new ModuleManager();
 
@@ -184,7 +185,6 @@ public class ModuleManager {
         }
     }
 
-
     private Thread.State getProcessState(short moduleId) {
         ModuleProcess process = PROCCESS_MAP.get(moduleId);
         if (null != process) {
@@ -208,5 +208,9 @@ public class ModuleManager {
 
     public void setModulesCfg(Map<String, String> modulesCfg) {
         this.modulesCfg = modulesCfg;
+    }
+
+    public List<BaseModuleBootstrap> getModuleList() {
+        return new ArrayList<>(MODULE_MAP.values());
     }
 }

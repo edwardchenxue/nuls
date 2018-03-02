@@ -57,7 +57,6 @@ public class RpcServerModuleBootstrap extends AbstractRpcServerModule {
 
     @Override
     public void start() {
-
         if (StringUtils.isBlank(ip) || StringUtils.isBlank(port)) {
             rpcServerService.startServer(RpcConstant.DEFAULT_IP, RpcConstant.DEFAULT_PORT, RpcConstant.DEFAULT_URL);
         } else {
@@ -88,10 +87,4 @@ public class RpcServerModuleBootstrap extends AbstractRpcServerModule {
         }
         return str.toString();
     }
-
-    @Override
-    public int getVersion() {
-        return RpcConstant.RPC_MODULE_VERSION;
-    }
-
 }

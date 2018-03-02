@@ -25,26 +25,27 @@ package io.nuls.rpc.resources.impl;
 
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.event.CommonStringEvent;
+import io.nuls.core.utils.date.TimeService;
 import io.nuls.event.bus.service.intf.EventBroadcaster;
+import io.nuls.rpc.entity.InfoDto;
 import io.nuls.rpc.entity.RpcResult;
 
+import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 /**
- *
  * @author Niels
  * @date 2017/10/24
- *
  */
-@Path("/broadcast")
-public class NetworkMessageResource  {
+@Path("/network")
+public class NetworkMessageResource {
 
     private EventBroadcaster eventBroadcaster = NulsContext.getServiceBean(EventBroadcaster.class);
 
-    
+
     @PUT
     @Produces(MediaType.APPLICATION_JSON)
     public RpcResult broadcast(String message) {
@@ -54,7 +55,7 @@ public class NetworkMessageResource  {
         return RpcResult.getSuccess();
     }
 
-    
+
     public RpcResult send(String message, String nodeId) {
         CommonStringEvent event = new CommonStringEvent();
         event.setMessage(message);
@@ -62,11 +63,21 @@ public class NetworkMessageResource  {
         return RpcResult.getSuccess();
     }
 
-    
+
     public RpcResult broadcast(String message, String groupId) {
         CommonStringEvent event = new CommonStringEvent();
         event.setMessage(message);
         eventBroadcaster.sendToGroupAysn(event, groupId);
         return RpcResult.getSuccess();
+    }
+
+    @GET
+    @Path("/info")
+    @Produces(MediaType.APPLICATION_JSON)
+    public RpcResult getInfo() {
+        RpcResult result = RpcResult.getSuccess();
+        InfoDto info = new InfoDto(NulsContext.getInstance().getBestBlock().getHeader().getHeight(), NulsContext.getInstance().getNetBestBlockHeight(), TimeService.getNetTimeOffset());
+        result.setData(info);
+        return result;
     }
 }

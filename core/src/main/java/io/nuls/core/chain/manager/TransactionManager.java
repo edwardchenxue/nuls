@@ -66,9 +66,9 @@ public class TransactionManager {
         return tx;
     }
 
-    public static List<Transaction> getInstances(NulsByteBuffer byteBuffer) throws Exception {
+    public static List<Transaction> getInstances(NulsByteBuffer byteBuffer, long txCount) throws Exception {
         List<Transaction> list = new ArrayList<>();
-        while (!byteBuffer.isFinished()) {
+        for (int i = 0; i < txCount; i++) {
             list.add(getInstance(byteBuffer));
         }
         return list;

@@ -209,7 +209,7 @@ public class Index {
     public void close() throws IOException {
         mappedByteBuffer.force();
         mappedByteBuffer.clear();
-//todo        MappedBufferCleanUtil.clean(mappedByteBuffer);
+        MappedBufferCleanUtil.clean(mappedByteBuffer);
         fc.close();
         dbRandFile.close();
         mappedByteBuffer = null;

@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,10 +25,7 @@ package io.nuls.consensus.service.impl;
 
 import io.nuls.consensus.cache.manager.block.BlockCacheManager;
 import io.nuls.consensus.service.intf.BlockService;
-import io.nuls.core.chain.entity.Block;
-import io.nuls.core.chain.entity.BlockHeader;
-import io.nuls.core.chain.entity.NulsDigestData;
-import io.nuls.core.chain.entity.Transaction;
+import io.nuls.core.chain.entity.*;
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.exception.NulsException;
 import io.nuls.core.exception.NulsRuntimeException;
@@ -76,7 +73,11 @@ public class BlockServiceImpl implements BlockService {
 
     @Override
     public Block getLocalBestBlock() {
-        return getBlock(getLocalHeight());
+        Block block = getBlock(getLocalHeight());
+        if (null == block) {
+            block = NulsContext.getInstance().getBestBlock();
+        }
+        return block;
     }
 
     @Override
@@ -138,6 +139,12 @@ public class BlockServiceImpl implements BlockService {
         }
         blockStorageService.save(block.getHeader());
         ledgerService.saveTxList(block.getTxs());
+        Block bblock = null;
+        try {
+            bblock = blockStorageService.getBlock(block.getHeader().getHash().getDigestHex());
+        } catch (Exception e) {
+            Log.error(e);
+        }
     }
 
 
@@ -154,7 +161,7 @@ public class BlockServiceImpl implements BlockService {
     }
 
     @Override
-    public List<NulsDigestData> getBlockHashList(long startHeight, long endHeight, long split) {
+    public List<BlockHeader> getBlockHashList(long startHeight, long endHeight, long split) {
         return blockStorageService.getBlockHashList(startHeight, endHeight, split);
     }
 

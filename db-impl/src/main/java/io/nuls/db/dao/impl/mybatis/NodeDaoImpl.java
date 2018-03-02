@@ -25,6 +25,7 @@ package io.nuls.db.dao.impl.mybatis;
 
 import com.github.pagehelper.PageHelper;
 import io.nuls.core.utils.date.TimeService;
+import io.nuls.core.utils.log.Log;
 import io.nuls.db.dao.NodeDataService;
 import io.nuls.db.dao.impl.mybatis.mapper.NodeMapper;
 import io.nuls.db.dao.impl.mybatis.params.NodeSearchParams;
@@ -46,7 +47,6 @@ public class NodeDaoImpl extends BaseDaoImpl<NodeMapper, String, NodePo> impleme
         super(NodeMapper.class);
     }
 
-
     @Override
     protected Searchable getSearchable(Map<String, Object> params) {
         return new NodeSearchParams(params);
@@ -58,7 +58,8 @@ public class NodeDaoImpl extends BaseDaoImpl<NodeMapper, String, NodePo> impleme
         PageHelper.startPage(1, size);
         PageHelper.orderBy("last_fail_time asc");
         if (!keys.isEmpty()) {
-            searchable.addCondition("id", SearchOperator.notIn, keys);
+            List<String> keyList = new ArrayList<>(keys);
+            searchable.addCondition("id", SearchOperator.notIn, keyList);
         }
         searchable.addCondition("status", SearchOperator.eq, 0);
         searchable.addCondition("last_fail_time", SearchOperator.lt, TimeService.currentTimeMillis() - TimeService.ONE_HOUR);
@@ -71,18 +72,30 @@ public class NodeDaoImpl extends BaseDaoImpl<NodeMapper, String, NodePo> impleme
     public void saveChange(NodePo po) {
         try {
             Searchable searchable = new Searchable();
-            searchable.addCondition("ip", SearchOperator.eq, po.getIp());
+            searchable.addCondition("id", SearchOperator.eq, po.getId());
             if (getMapper().selectCount(searchable) > 0) {
-                if (po.getFailCount() >= 3) {
-                    getMapper().deleteByPrimaryKey(po.getId());
-                } else {
-                    getMapper().updateByPrimaryKey(po);
-                }
+                getMapper().updateByPrimaryKey(po);
             } else {
                 getMapper().insert(po);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.error(e);
+        }
+    }
+
+    @Override
+    @DbSession
+    public void removeNode(NodePo po) {
+        NodePo nodePo = getMapper().selectByPrimaryKey(po.getId());
+        if(nodePo != null && nodePo.getStatus() == NodePo.BLACK) {
+            return;
+        }
+        if (nodePo != null) {
+            if (po.getStatus() == NodePo.BLACK || po.getFailCount() <= 1) {
+                getMapper().updateByPrimaryKey(po);
+            } else {
+                getMapper().deleteByPrimaryKey(po.getId());
+            }
         }
     }
 }

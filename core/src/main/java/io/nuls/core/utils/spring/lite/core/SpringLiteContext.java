@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,6 +26,7 @@ package io.nuls.core.utils.spring.lite.core;
 import io.nuls.core.utils.log.Log;
 import io.nuls.core.utils.spring.lite.annotation.Autowired;
 import io.nuls.core.utils.spring.lite.annotation.Interceptor;
+import io.nuls.core.utils.spring.lite.annotation.MavenInfo;
 import io.nuls.core.utils.spring.lite.core.interceptor.BeanMethodInterceptor;
 import io.nuls.core.utils.spring.lite.core.interceptor.BeanMethodInterceptorManager;
 import io.nuls.core.utils.spring.lite.utils.ScanUtil;
@@ -36,6 +37,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Niels Wang
@@ -43,10 +45,10 @@ import java.util.*;
  */
 public class SpringLiteContext {
 
-    private static final Map<String, Object> BEAN_OK_MAP = new HashMap<>();
-    private static final Map<String, Object> BEAN_TEMP_MAP = new HashMap<>();
-    private static final Map<String, Class> BEAN_TYPE_MAP = new HashMap<>();
-    private static final Map<Class, Set<String>> CLASS_NAME_SET_MAP = new HashMap<>();
+    private static final Map<String, Object> BEAN_OK_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, Object> BEAN_TEMP_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, Class> BEAN_TYPE_MAP = new ConcurrentHashMap<>();
+    private static final Map<Class, Set<String>> CLASS_NAME_SET_MAP = new ConcurrentHashMap<>();
 
     private static MethodInterceptor interceptor;
 
@@ -76,10 +78,6 @@ public class SpringLiteContext {
     }
 
     private static void injectionBeanFields(Object obj, Class objType) throws Exception {
-        //todo debug
-        if(objType.getSimpleName().equals("UtxoLedgerServiceImpl")){
-            System.out.println();
-        }
         Set<Field> fieldSet = getFieldSet(objType);
         for (Field field : fieldSet) {
             injectionBeanField(obj, field);
@@ -141,15 +139,15 @@ public class SpringLiteContext {
         if (anns == null || anns.length == 0) {
             return;
         }
-//        Annotation ann = getFromArray(anns, Component.class);
-//        String beanName = null;
-//        if (ann != null) {
-//            beanName = ((Component) ann).value();
-//            if (beanName == null || beanName.trim().length() == 0) {
-//                beanName = getBeanName(clazz);
-//            }
-//            loadBean(beanName, clazz);
-//        }
+        Annotation ann = getFromArray(anns, MavenInfo.class);
+        String beanName = null;
+        if (ann != null) {
+            beanName = ((MavenInfo) ann).value();
+            if (beanName == null || beanName.trim().length() == 0) {
+                beanName = getBeanName(clazz);
+            }
+            loadBean(beanName, clazz,false);
+        }
         Annotation interceptorAnn = getFromArray(anns, Interceptor.class);
         if (null != interceptorAnn) {
             BeanMethodInterceptor interceptor = null;
@@ -157,7 +155,7 @@ public class SpringLiteContext {
                 Constructor constructor = clazz.getDeclaredConstructor();
                 interceptor = (BeanMethodInterceptor) constructor.newInstance();
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.error(e);
                 return;
             }
             BeanMethodInterceptorManager.addBeanMethodInterceptor(((Interceptor) interceptorAnn).value(), interceptor);
@@ -183,12 +181,23 @@ public class SpringLiteContext {
         return null;
     }
 
-    private static void loadBean(String beanName, Class clazz) {
+    private static void loadBean(String beanName, Class clazz,boolean proxy) {
         if (BEAN_OK_MAP.containsKey(beanName) || BEAN_TEMP_MAP.containsKey(beanName)) {
             Log.error("bean name repetition (" + beanName + "):" + clazz.getName());
             return;
         }
-        Object bean = createProxy(clazz, interceptor);
+        Object bean = null;
+        if(proxy){
+            bean = createProxy(clazz, interceptor);
+        }else{
+            try {
+                bean = clazz.newInstance();
+            } catch (InstantiationException e) {
+                Log.error(e);
+            } catch (IllegalAccessException e) {
+                Log.error(e);
+            }
+        }
         BEAN_TEMP_MAP.put(beanName, bean);
         BEAN_TYPE_MAP.put(beanName, clazz);
         addClassNameMap(clazz, beanName);
@@ -218,10 +227,6 @@ public class SpringLiteContext {
         }
     }
 
-//    public static Object getBean(String beanName) {
-//        return BEAN_MAP.get(beanName);
-//    }
-
     public static <T> T getBean(Class<T> beanClass) throws Exception {
         Set<String> nameSet = CLASS_NAME_SET_MAP.get(beanClass);
         if (null == nameSet || nameSet.isEmpty()) {
@@ -244,12 +249,20 @@ public class SpringLiteContext {
     }
 
     public static void putBean(Class clazz) {
-        loadBean(getBeanName(clazz), clazz);
+        loadBean(getBeanName(clazz), clazz,true);
         autowireFields();
     }
 
     public static void removeBean(Class clazz) {
-        // todo auto-generated method stub(niels)
+        Set<String> nameSet = CLASS_NAME_SET_MAP.get(clazz);
+        if(null==nameSet||nameSet.isEmpty()){
+            return;
+        }
+        for(String name:nameSet){
+            BEAN_OK_MAP.remove(name);
+            BEAN_TEMP_MAP.remove(name);
+            BEAN_TYPE_MAP.remove(name);
+        }
 
     }
 
@@ -257,4 +270,21 @@ public class SpringLiteContext {
        return BEAN_OK_MAP.containsValue(bean);
     }
 
+    public static <T> List<T> getBeanList(Class<T> beanClass) throws Exception {
+        Set<String> nameSet = CLASS_NAME_SET_MAP.get(beanClass);
+        if (null == nameSet || nameSet.isEmpty()) {
+            throw new Exception("Can't find bean of " + beanClass.getName());
+        }
+        List<T> tlist = new ArrayList<>();
+        for (String name : nameSet) {
+            T value = (T) BEAN_OK_MAP.get(name);
+           if(value==null){
+               value = (T) BEAN_TEMP_MAP.get(name);
+           }
+           if(null!=value){
+               tlist.add(value);
+           }
+        }
+        return tlist;
+    }
 }

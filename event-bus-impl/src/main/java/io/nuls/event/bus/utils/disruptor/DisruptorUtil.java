@@ -72,14 +72,15 @@ public class DisruptorUtil<T extends DisruptorEvent> {
         }
 
         Disruptor<DisruptorEvent> disruptor = new Disruptor<DisruptorEvent>(EVENT_FACTORY,
-                ringBufferSize, new NulsThreadFactory(ModuleService.getInstance().getModuleId(EventBusModuleBootstrap.class),name), ProducerType.SINGLE,
-                new SleepingWaitStrategy());
-        disruptor.handleEventsWith(new EventHandler<DisruptorEvent>() {
-            @Override
-            public void onEvent(DisruptorEvent disruptorEvent, long l, boolean b) throws Exception {
-                Log.debug(disruptorEvent.getData() + "");
-            }
-        });
+                ringBufferSize, new NulsThreadFactory(ModuleService.getInstance().getModuleId(EventBusModuleBootstrap.class), name), ProducerType.SINGLE,
+                new BlockingWaitStrategy());
+        //SleepingWaitStrategy
+//        disruptor.handleEventsWith(new EventHandler<DisruptorEvent>() {
+//            @Override
+//            public void onEvent(DisruptorEvent disruptorEvent, long l, boolean b) throws Exception {
+//                Log.debug(disruptorEvent.getData() + "");
+//            }
+//        });
         DISRUPTOR_MAP.put(name, disruptor);
     }
 
@@ -122,6 +123,8 @@ public class DisruptorUtil<T extends DisruptorEvent> {
             //获取该序号对应的事件对象；
             DisruptorEvent event = ringBuffer.get(sequence);
             event.setData(obj);
+        } catch (Exception e) {
+            Log.error(e);
         } finally {
             //发布事件；
             ringBuffer.publish(sequence);
@@ -138,8 +141,6 @@ public class DisruptorUtil<T extends DisruptorEvent> {
         Disruptor disruptor = DISRUPTOR_MAP.get(name);
         AssertUtil.canNotEmpty(disruptor, "the disruptor is not exist!name:" + name);
         disruptor.handleEventsWithWorkerPool(handler);
-
-
     }
 
 }

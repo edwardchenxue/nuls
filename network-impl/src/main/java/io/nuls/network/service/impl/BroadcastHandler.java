@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,6 +28,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.socket.SocketChannel;
 import io.nuls.core.event.BaseEvent;
 import io.nuls.core.mesasge.NulsMessage;
+import io.nuls.core.utils.log.Log;
 import io.nuls.network.entity.BroadcastResult;
 import io.nuls.network.entity.Node;
 import io.nuls.network.entity.NodeGroup;
@@ -35,6 +36,8 @@ import io.nuls.network.entity.param.AbstractNetworkParam;
 import io.nuls.network.service.impl.netty.NioChannelMap;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,14 +63,14 @@ public class BroadcastHandler {
         if (nodesManager.getNodes().isEmpty()) {
             return new BroadcastResult(false, "no node can be broadcast");
         }
-        return broadcastToList(nodesManager.getNodes(), event, null, asyn);
+        return broadcastToList(nodesManager.getAvailableNodes(), event, null, asyn);
     }
 
     public BroadcastResult broadcast(BaseEvent event, String excludeNodeId, boolean asyn) {
         if (nodesManager.getNodes().isEmpty()) {
             return new BroadcastResult(false, "no node can be broadcast");
         }
-        return broadcastToList(nodesManager.getNodes(), event, excludeNodeId, asyn);
+        return broadcastToList(nodesManager.getAvailableNodes(), event, excludeNodeId, asyn);
     }
 
     public BroadcastResult broadcastToGroup(BaseEvent event, String groupName, boolean asyn) {
@@ -79,7 +82,8 @@ public class BroadcastHandler {
             return new BroadcastResult(false, "no node can be broadcast");
         }
 
-        return broadcastToList(group.getNodes(), event, null, asyn);
+        List<Node> nodeList = new ArrayList<>(group.getNodes().values());
+        return broadcastToList(nodeList, event, null, asyn);
     }
 
     public BroadcastResult broadcastToGroup(BaseEvent event, String groupName, String excludeNodeId, boolean asyn) {
@@ -90,8 +94,8 @@ public class BroadcastHandler {
         if (group.size() == 0) {
             return new BroadcastResult(false, "no node can be broadcast");
         }
-
-        return broadcastToList(group.getNodes(), event, excludeNodeId, asyn);
+        List<Node> nodeList = new ArrayList<>(group.getNodes().values());
+        return broadcastToList(nodeList, event, excludeNodeId, asyn);
     }
 
     public BroadcastResult broadcastToNode(BaseEvent event, String nodeId, boolean asyn) {
@@ -153,7 +157,7 @@ public class BroadcastHandler {
 ////                try {
 ////                    Thread.sleep(3000);
 ////                } catch (InterruptedException e) {
-////                    e.printStackTrace();
+////                    Log.error(e);
 ////                }
 ////                broadNodes = nodesManager.getAvailableNodes(excludeNodeId);
 ////            }
@@ -330,18 +334,20 @@ public class BroadcastHandler {
 //        return broadcastToGroup(event,null ,groupName, excludeNodeId);
 //    }
 
-    private BroadcastResult broadcastToList(Map<String, Node> nodeMap, BaseEvent event, String excludeNodeId, boolean asyn) {
+    private BroadcastResult broadcastToList(List<Node> nodeList, BaseEvent event, String excludeNodeId, boolean asyn) {
         NulsMessage message;
+        BroadcastResult result = new BroadcastResult();
         try {
             message = new NulsMessage(network.packetMagic(), event.serialize());
             int successCount = 0;
-            for (Node node : nodeMap.values()) {
+            for (Node node : nodeList) {
                 if (excludeNodeId != null && node.getId().equals(excludeNodeId)) {
                     continue;
                 }
-                BroadcastResult result = broadcast(message, node, asyn);
-                if (result.isSuccess()) {
+                BroadcastResult br = broadcast(message, node, asyn);
+                if (br.isSuccess()) {
                     successCount++;
+                    result.getBroadcastNodes().add(node);
                 }
             }
             if (successCount == 0) {
@@ -350,17 +356,23 @@ public class BroadcastHandler {
         } catch (IOException e) {
             return new BroadcastResult(false, "event.serialize() error");
         }
-        return new BroadcastResult(true, "OK");
+        result.setSuccess(true);
+        result.setMessage("OK");
+        return result;
     }
 
     private BroadcastResult broadcast(NulsMessage message, Node node, boolean asyn) throws IOException {
         try {
+            if(!node.isAlive() && node.getChannelId() == null) {
+                return new BroadcastResult(false, "node not found");
+            }
             SocketChannel channel = NioChannelMap.get(node.getChannelId());
             if (channel == null) {
                 return new BroadcastResult(false, "node not found");
             }
             ChannelFuture future = channel.writeAndFlush(Unpooled.wrappedBuffer(message.serialize()));
             if (!asyn) {
+                future.await();
                 boolean success = future.isSuccess();
                 if (!success) {
                     return new BroadcastResult(false, "send message failed");
@@ -369,6 +381,7 @@ public class BroadcastHandler {
         } catch (IOException e) {
             throw e;
         } catch (Exception e) {
+            Log.error(e);
             return new BroadcastResult(false, "send message failed");
         }
         return new BroadcastResult(true, "OK");

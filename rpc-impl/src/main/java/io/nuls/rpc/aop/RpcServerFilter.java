@@ -24,11 +24,9 @@
 package io.nuls.rpc.aop;
 
 import io.nuls.core.constant.ErrorCode;
-import io.nuls.core.constant.NulsConstant;
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.exception.NulsException;
 import io.nuls.core.exception.NulsRuntimeException;
-import io.nuls.core.utils.cfg.ConfigLoader;
 import io.nuls.core.utils.log.Log;
 import io.nuls.core.utils.str.StringUtils;
 import io.nuls.rpc.constant.RpcConstant;
@@ -68,7 +66,7 @@ public class RpcServerFilter implements ContainerRequestFilter, ContainerRespons
     @Override
     public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext) throws IOException {
         Log.info("url:{},IP:{},useTime:{}, params:{},result:{}", requestContext.getUriInfo().getRequestUri().getPath() + "?" + requestContext.getUriInfo().getRequestUri().getQuery(), grizzlyRequestProvider.get().getRemoteHost()
-                , (System.currentTimeMillis() - Long.parseLong(requestContext.getProperty("start").toString())), null, null);
+                , (System.currentTimeMillis() - Long.parseLong(requestContext.getProperty("start").toString())), null, responseContext.getEntity());
     }
 
     @Override

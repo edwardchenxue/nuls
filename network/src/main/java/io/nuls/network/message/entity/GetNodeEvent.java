@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,8 +23,6 @@
  */
 package io.nuls.network.message.entity;
 
-import io.nuls.core.chain.entity.BasicTypeData;
-import io.nuls.core.chain.entity.NulsVersion;
 import io.nuls.core.constant.NulsConstant;
 import io.nuls.core.crypto.VarInt;
 import io.nuls.core.event.BaseEvent;
@@ -50,7 +48,6 @@ public class GetNodeEvent extends BaseEvent {
 
     public GetNodeEvent() {
         super(NulsConstant.MODULE_ID_NETWORK, NetworkConstant.NETWORK_GET_NODE_EVENT);
-        this.version = new NulsVersion(OWN_MAIN_VERSION, OWN_SUB_VERSION);
     }
 
     public GetNodeEvent(int length) {
@@ -62,7 +59,6 @@ public class GetNodeEvent extends BaseEvent {
     public int size() {
         int s = 0;
         s += EventHeader.EVENT_HEADER_LENGTH;
-        s += VarInt.sizeOf(getVersion().getVersion());
         s += VarInt.sizeOf(length);
         return s;
     }
@@ -70,14 +66,12 @@ public class GetNodeEvent extends BaseEvent {
     @Override
     protected void serializeToStream(NulsOutputStreamBuffer stream) throws IOException {
         stream.writeNulsData(getHeader());
-        stream.writeShort(version.getVersion());
         stream.writeVarInt(length);
     }
 
     @Override
     protected void parse(NulsByteBuffer byteBuffer) throws NulsException {
         this.setHeader(byteBuffer.readNulsData(new EventHeader()));
-        version = new NulsVersion(byteBuffer.readShort());
         length = (int) byteBuffer.readVarInt();
     }
 

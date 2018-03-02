@@ -25,13 +25,13 @@ package io.nuls.core.context;
 
 import io.nuls.core.chain.entity.Block;
 import io.nuls.core.chain.entity.Na;
-import io.nuls.core.module.manager.ServiceManager;
 import io.nuls.core.utils.cfg.IniEntity;
 import io.nuls.core.utils.log.Log;
 import io.nuls.core.utils.spring.lite.core.SpringLiteContext;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -45,33 +45,27 @@ public class NulsContext {
     public static IniEntity NULS_CONFIG;
     public static IniEntity MODULES_CONFIG;
 
-    private NulsContext() {
-        CHAIN_ID = "NULS";
-        CHAIN_ID_MAP.put(CHAIN_ID, Short.parseShort("1"));
+    public static int getMagicNumber() {
+        return MAGIC_NUMBER;
     }
 
-    private static final NulsContext NC = new NulsContext();
-
-    /**
-     * get zhe only instance of NulsContext
-     *
-     * @return
-     */
-    public static final NulsContext getInstance() {
-        return NC;
+    public static void setMagicNumber(int magicNumber) {
+        MAGIC_NUMBER = magicNumber;
     }
 
+    public static int MAGIC_NUMBER;
     private Na txFee;
     /**
      * cache the best block
      */
     private Block bestBlock;
     private Block genesisBlock;
+    private Long netBestBlockHeight;
 
     public static Set<String> LOCAL_ADDRESS_LIST = new HashSet<>();
     public static String DEFAULT_ACCOUNT_ID;
-
-    public static String nulsVersion = "1.0";
+    public static String VERSION;
+    public static String NEWEST_VERSION;
 
     public Block getGenesisBlock() {
         return genesisBlock;
@@ -93,6 +87,21 @@ public class NulsContext {
         }
         return bestBlock;
     }
+
+    private NulsContext() {
+        CHAIN_ID = "NULS";
+        CHAIN_ID_MAP.put(CHAIN_ID, Short.parseShort("1"));
+    }
+
+    private static final NulsContext NC = new NulsContext();
+
+    /**
+     * get zhe only instance of NulsContext
+     */
+    public static final NulsContext getInstance() {
+        return NC;
+    }
+
 
     public void setBestBlock(Block bestBlock) {
         this.bestBlock = bestBlock;
@@ -116,27 +125,47 @@ public class NulsContext {
 
     public static final <T> T getServiceBean(Class<T> tClass) {
         try {
+
             return SpringLiteContext.getBean(tClass);
         } catch (Exception e) {
-            return getServiceBean(tClass,0L);
+            return getServiceBean(tClass, 0L);
         }
     }
 
     private static <T> T getServiceBean(Class<T> tClass, long l) {
         try {
-            Thread.sleep(100L);
+            Thread.sleep(300L);
         } catch (InterruptedException e1) {
             Log.error(e1);
         }
         try {
             return SpringLiteContext.getBean(tClass);
         } catch (Exception e) {
-            if(l>60000){
+            if (l > 20000) {
                 Log.error(e);
                 return null;
             }
-            return getServiceBean(tClass,l+100L);
+            return getServiceBean(tClass, l + 10L);
         }
+    }
 
+    public Long getNetBestBlockHeight() {
+        if(netBestBlockHeight == null) {
+            netBestBlockHeight = 0L;
+        }
+        return netBestBlockHeight;
+    }
+
+    public void setNetBestBlockHeight(Long netBestBlockHeight) {
+        this.netBestBlockHeight = netBestBlockHeight;
+    }
+
+    public static <T> List<T> getServiceBeanList(Class<T> tClass) {
+        try {
+            return SpringLiteContext.getBeanList(tClass);
+        } catch (Exception e) {
+            Log.error(e);
+        }
+        return null;
     }
 }

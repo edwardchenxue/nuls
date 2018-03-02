@@ -84,7 +84,7 @@ public final class GenesisBlock extends Block {
         }
         String time = (String) jsonMap.get(CONFIG_FILED_TIME);
         AssertUtil.canNotEmpty(time, ErrorCode.CONFIG_ERROR);
-         blockTime = DateUtil.convertStringToDate(time).getTime();
+        blockTime = Long.parseLong(time);
 
         this.initGengsisTxs(jsonMap);
         this.fillHeader(jsonMap);

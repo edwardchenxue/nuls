@@ -37,6 +37,13 @@ import java.util.Set;
  * @date 2017/11/6
  */
 public abstract class AbstractNetworkParam {
+    public enum NetworkType {
+        DEV,
+        TEST,
+        MAIN
+    }
+
+    protected NetworkType type;
 
     protected int port;
 

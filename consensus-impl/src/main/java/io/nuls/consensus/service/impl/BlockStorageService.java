@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -90,6 +90,7 @@ public class BlockStorageService {
 
 
     public List<Block> getBlockList(long startHeight, long endHeight) {
+        //todo 这里有可能出现空的block
         List<Block> blockList = new ArrayList<>();
         List<BlockHeaderPo> poList = headerDao.getHeaderList(startHeight, endHeight);
         List<Transaction> txList = null;
@@ -99,9 +100,23 @@ public class BlockStorageService {
             Log.error(e);
         }
         Map<Long, List<Transaction>> txListGroup = txListGrouping(txList);
+        List <Long> heightList = new ArrayList<>();
         for (BlockHeaderPo po : poList) {
             BlockHeader header = ConsensusTool.fromPojo(po);
+            heightList.add(header.getHeight());
             blockList.add(fillBlock(header, txListGroup.get(header.getHeight())));
+        }
+        if((endHeight-startHeight+1)>blockList.size()){
+            for(long i=startHeight;i<=endHeight;i++){
+                if(heightList.contains(i)){
+                    continue;
+                }
+                try {
+                    blockList.add(this.getBlock(i));
+                } catch (Exception e) {
+                    Log.error(e);
+                }
+            }
         }
         return blockList;
     }
@@ -141,11 +156,14 @@ public class BlockStorageService {
         headerDao.delete(hash);
     }
 
-    public List<NulsDigestData> getBlockHashList(long startHeight, long endHeight, long split) {
-        List<String> strList = this.headerDao.getHashList(startHeight, endHeight, split);
-        List<NulsDigestData> hashList = new ArrayList<>();
-        for (String hash : strList) {
-            hashList.add(NulsDigestData.fromDigestHex(hash));
+    public List<BlockHeader> getBlockHashList(long startHeight, long endHeight, long split) {
+        List<BlockHeaderPo> strList = this.headerDao.getHashList(startHeight, endHeight, split);
+        List<BlockHeader> hashList = new ArrayList<>();
+        for (BlockHeaderPo po : strList) {
+            BlockHeader header = new BlockHeader();
+            header.setHash(NulsDigestData.fromDigestHex(po.getHash()));
+            header.setHeight(po.getHeight());
+            hashList.add(header);
         }
         return hashList;
     }

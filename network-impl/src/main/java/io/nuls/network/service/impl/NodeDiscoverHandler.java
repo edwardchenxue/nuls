@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,6 +26,7 @@ package io.nuls.network.service.impl;
 import io.nuls.core.constant.NulsConstant;
 import io.nuls.core.context.NulsContext;
 import io.nuls.core.thread.manager.TaskManager;
+import io.nuls.core.utils.log.Log;
 import io.nuls.db.dao.NodeDataService;
 import io.nuls.db.entity.NodePo;
 import io.nuls.network.constant.NetworkConstant;
@@ -110,8 +111,9 @@ public class NodeDiscoverHandler implements Runnable {
     public void findOtherNode(int size) {
         NodeGroup group = nodesManager.getNodeGroup(NetworkConstant.NETWORK_NODE_IN_GROUP);
         if (group.getNodes().size() > 0) {
-            for(Node node : group.getNodes().values()) {
-                if(node.isHandShake()) {
+            List<Node> nodeList = new ArrayList<>(group.getNodes().values());
+            for (Node node : nodeList) {
+                if (node.isHandShake()) {
                     GetNodeEvent event = new GetNodeEvent(size);
                     broadcaster.broadcastToNode(event, node, true);
                     break;
@@ -121,8 +123,9 @@ public class NodeDiscoverHandler implements Runnable {
 
         group = nodesManager.getNodeGroup(NetworkConstant.NETWORK_NODE_OUT_GROUP);
         if (group.getNodes().size() > 0) {
-            for(Node node : group.getNodes().values()) {
-                if(node.isHandShake()) {
+            List<Node> nodeList = new ArrayList<>(group.getNodes().values());
+            for (Node node : nodeList) {
+                if (node.isHandShake()) {
                     GetNodeEvent event = new GetNodeEvent(size);
                     broadcaster.broadcastToNode(event, node, true);
                     break;
@@ -138,7 +141,9 @@ public class NodeDiscoverHandler implements Runnable {
     public void run() {
         while (running) {
             Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-            for (Node node : nodesManager.getNodes().values()) {
+            List<Node> nodeList = new ArrayList<>(nodesManager.getNodes().values());
+
+            for (Node node : nodeList) {
                 if (node.isAlive()) {
                     GetVersionEvent event = new GetVersionEvent(network.getExternalPort());
                     broadcaster.broadcastToNode(event, node, true);
@@ -147,7 +152,7 @@ public class NodeDiscoverHandler implements Runnable {
             try {
                 Thread.sleep(6000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                Log.error(e);
             }
         }
     }

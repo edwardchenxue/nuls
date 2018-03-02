@@ -25,7 +25,10 @@ package io.nuls.rpc.resources.impl;
 
 import io.nuls.consensus.service.intf.BlockService;
 import io.nuls.core.chain.entity.Block;
+import io.nuls.core.constant.ErrorCode;
 import io.nuls.core.context.NulsContext;
+import io.nuls.core.utils.str.StringUtils;
+import io.nuls.rpc.entity.BlockDto;
 import io.nuls.rpc.entity.RpcResult;
 
 import javax.ws.rs.GET;
@@ -39,24 +42,53 @@ import javax.ws.rs.core.MediaType;
  * @date 2017/9/30
  */
 @Path("/block")
-public class BlockResource  {
+public class BlockResource {
 
     private BlockService blockService = NulsContext.getServiceBean(BlockService.class);
 
     @GET
-    @Path("/{hash}")
+    @Path("/hash/{hash}")
     @Produces(MediaType.APPLICATION_JSON)
-    
+
     public RpcResult loadBlock(@PathParam("hash") String hash) {
-        RpcResult result = RpcResult.getSuccess();
-        result.setData(blockService.getBlock(hash));
+        RpcResult result;
+        if (!StringUtils.validHash(hash)) {
+            return RpcResult.getFailed(ErrorCode.PARAMETER_ERROR);
+        }
+        Block block = blockService.getBlock(hash);
+        if (block == null) {
+            result = RpcResult.getFailed(ErrorCode.DATA_NOT_FOUND);
+        } else {
+            result = RpcResult.getSuccess();
+            result.setData(new BlockDto(block));
+        }
+        return result;
+    }
+
+    @GET
+    @Path("/height/{height}")
+    @Produces(MediaType.APPLICATION_JSON)
+
+    public RpcResult getBlock(@PathParam("height") Long height) {
+        RpcResult result;
+        if (height < 0) {
+            return RpcResult.getFailed(ErrorCode.PARAMETER_ERROR);
+        }
+
+        Block block = blockService.getBlock(height);
+        if (block == null) {
+            result = RpcResult.getFailed(ErrorCode.DATA_NOT_FOUND);
+        } else {
+            result = RpcResult.getSuccess();
+            result.setData(new BlockDto(block));
+        }
         return result;
     }
 
     @GET
     @Path("/count")
     @Produces(MediaType.APPLICATION_JSON)
-    
+
     public RpcResult getBlockCount() {
         RpcResult result = RpcResult.getSuccess();
         result.setData(blockService.getLocalHeight() + 1);
@@ -66,8 +98,8 @@ public class BlockResource  {
     @GET
     @Path("/bestheight")
     @Produces(MediaType.APPLICATION_JSON)
-    
-    public RpcResult getBestBlockHeiht() {
+
+    public RpcResult getBestBlockHeight() {
         RpcResult result = RpcResult.getSuccess();
         result.setData(blockService.getLocalHeight());
         return result;
@@ -76,30 +108,36 @@ public class BlockResource  {
     @GET
     @Path("/besthash")
     @Produces(MediaType.APPLICATION_JSON)
-    
+
     public RpcResult getBestBlockHash() {
         RpcResult result = RpcResult.getSuccess();
-        result.setData(blockService.getLocalBestBlock().getHeader().getHash());
+        result.setData(blockService.getLocalBestBlock().getHeader().getHash().getDigestHex());
         return result;
     }
 
     @GET
-    @Path("/height/{height}/hash")
+    @Path("/hash/height/{height}")
     @Produces(MediaType.APPLICATION_JSON)
-    
-    public RpcResult getHashByHeight(@PathParam("height") Integer height) {
-        RpcResult result = RpcResult.getSuccess();
+
+    public RpcResult getHashByHeight(@PathParam("height") Long height) {
+        if (height < 0) {
+            return RpcResult.getFailed(ErrorCode.PARAMETER_ERROR);
+        }
+        RpcResult result;
         Block block = blockService.getBlock(height);
         if (block != null) {
-            result.setData(block.getHeader().getHash());
+            result = RpcResult.getSuccess();
+            result.setData(block.getHeader().getHash().getDigestHex());
+        } else {
+            result = RpcResult.getFailed(ErrorCode.DATA_NOT_FOUND);
         }
         return result;
     }
 
     @GET
-    @Path("/height/{height}/header")
+    @Path("/header/height/{height}")
     @Produces(MediaType.APPLICATION_JSON)
-    
+
     public RpcResult getHeaderByHeight(@PathParam("height") Integer height) {
         RpcResult result = RpcResult.getSuccess();
         Block block = blockService.getBlock(height);
@@ -110,9 +148,9 @@ public class BlockResource  {
     }
 
     @GET
-    @Path("/{hash}/header")
+    @Path("/header/hash/{hash}")
     @Produces(MediaType.APPLICATION_JSON)
-    
+
     public RpcResult getHeader(@PathParam("hash") String hash) {
         RpcResult result = RpcResult.getSuccess();
         Block block = blockService.getBlock(hash);
@@ -122,14 +160,5 @@ public class BlockResource  {
         return result;
     }
 
-    @GET
-    @Path("/height/{height}")
-    @Produces(MediaType.APPLICATION_JSON)
-    
-    public RpcResult getBlock(@PathParam("height") Integer height) {
-        RpcResult result = RpcResult.getSuccess();
-        Block block = blockService.getBlock(height);
-        result.setData(block);
-        return result;
-    }
+
 }

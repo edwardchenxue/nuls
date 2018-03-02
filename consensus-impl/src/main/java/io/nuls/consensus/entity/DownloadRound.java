@@ -23,6 +23,8 @@
  */
 package io.nuls.consensus.entity;
 
+import java.util.List;
+
 /**
  * @author Niels
  * @date 2018/1/16
@@ -31,6 +33,7 @@ public class DownloadRound {
 
     private long start;
     private long end;
+    private List<String> nodeIdList;
 
     public long getStart() {
         return start;
@@ -46,5 +49,13 @@ public class DownloadRound {
 
     public void setEnd(long end) {
         this.end = end;
+    }
+
+    public void setNodeIdList(List<String> nodeIdList) {
+        this.nodeIdList = nodeIdList;
+    }
+
+    public List<String> getNodeIdList() {
+        return nodeIdList;
     }
 }

@@ -46,7 +46,7 @@ public class EventBusServiceImpl implements EventBusService {
     public String subscribeEvent(Class<? extends BaseEvent> eventClass, NulsEventHandler<? extends BaseEvent> eventHandler) {
         String id = localService.registerEventHandler(eventClass,
                 (AbstractEventHandler<? extends BaseEvent>) eventHandler);
-        networkService.registerEventHandler(id,eventClass,
+        networkService.registerEventHandler(id, eventClass,
                 (AbstractEventHandler<? extends BaseEvent>) eventHandler);
         return id;
     }
@@ -79,16 +79,18 @@ public class EventBusServiceImpl implements EventBusService {
 
     @Override
     public void publishNetworkEvent(byte[] bytes, String fromId) {
-        try{
+        try {
             networkService.publish(bytes, fromId);
-        }catch (Exception e){
+        } catch (Exception e) {
             Log.error(e);
         }
     }
 
     @Override
     public void publishNetworkEvent(BaseEvent event, String fromId) {
-        try{networkService.publish(event, fromId);}catch (Exception e){
+        try {
+            networkService.publish(event, fromId);
+        } catch (Exception e) {
             Log.error(e);
         }
     }

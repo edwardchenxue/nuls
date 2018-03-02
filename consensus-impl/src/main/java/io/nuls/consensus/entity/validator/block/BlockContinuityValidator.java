@@ -49,18 +49,25 @@ public class BlockContinuityValidator implements NulsDataValidator<Block> {
     @Override
     public ValidateResult validate(Block block) {
         ValidateResult result = ValidateResult.getSuccessResult();
-        boolean failed;
+        boolean failed = false;
         do {
             if (block.getHeader().getHeight() == 0) {
                 failed = !block.getHeader().getPreHash().equals(NulsDigestData.EMPTY_HASH);
                 break;
             }
             Block preBlock = NulsContext.getServiceBean(BlockService.class).getBlock(block.getHeader().getHeight()-1);
+            if(null==preBlock){
+                break;
+            }
             failed = !preBlock.getHeader().getHash().equals(block.getHeader().getPreHash());
             if(failed){
                 break;
             }
-            failed = preBlock.getHeader().getTime()>(block.getHeader().getTime()- PocConsensusConstant.BLOCK_TIME_INTERVAL*1000);
+            //todo 3 seconds error
+            failed = (block.getHeader().getTime()- preBlock.getHeader().getTime())<=PocConsensusConstant.BLOCK_TIME_INTERVAL*1000-3000;
+            if(failed){
+                break;
+            }
         } while (false);
 
         if (failed) {

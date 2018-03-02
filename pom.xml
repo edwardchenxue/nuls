@@ -4,7 +4,7 @@
 
     <groupId>io.nuls</groupId>
     <artifactId>nuls</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <name>nuls</name>
@@ -36,6 +36,7 @@
         <module>node</module>
         <module>event-bus</module>
         <module>event-bus-impl</module>
+        <module>notify</module>
     </modules>
     <build>
         <finalName>nuls</finalName>

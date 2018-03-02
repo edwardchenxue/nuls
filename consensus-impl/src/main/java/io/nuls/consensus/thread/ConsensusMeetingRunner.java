@@ -1,18 +1,18 @@
 /**
  * MIT License
- * <p>
+ *
  * Copyright (c) 2017-2018 nuls.io
- * <p>
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * <p>
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * <p>
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -122,7 +122,7 @@ public class ConsensusMeetingRunner implements Runnable {
     }
 
     private void nextRound() {
-        if (this.consensusManager.getConsensusStatusInfo() == null || this.consensusManager.getConsensusStatusInfo().getAddress() == null) {
+        if (this.consensusManager.getConsensusStatusInfo() == null) {
             return;
         }
         PocMeetingRound currentRound = calcRound();
@@ -171,7 +171,9 @@ public class ConsensusMeetingRunner implements Runnable {
         currentRound.setEndTime(currentRound.getStartTime() + currentRound.getMemberCount() * PocConsensusConstant.BLOCK_TIME_INTERVAL * 1000L);
         cg.setDelegateList(myDelegateList);
         currentRound.setConsensusGroup(cg);
-        startMeeting();
+        if (ConsensusStatusEnum.IN.getCode() == consensusManager.getConsensusStatusInfo().getStatus()){
+            startMeeting();
+        }
     }
 
     private void startMeeting() {
@@ -193,7 +195,6 @@ public class ConsensusMeetingRunner implements Runnable {
     }
 
     private double calcCreditVal() {
-        //todo 需要修改
         long roundStart = consensusManager.getCurrentRound().getIndex() - 1 - PocConsensusConstant.RANGE_OF_CAPACITY_COEFFICIENT;
         if (roundStart < 0) {
             roundStart = 0;
@@ -255,6 +256,7 @@ public class ConsensusMeetingRunner implements Runnable {
         event.setEventBody(newBlock.getHeader());
         eventBroadcaster.broadcastAndCache(event, false);
     }
+
 
     /**
      * CoinBase transaction & Punish transaction
@@ -422,7 +424,7 @@ public class ConsensusMeetingRunner implements Runnable {
         if (round.getPreviousRound().getEndTime() < bestBlock.getHeader().getTime()) {
             round.setStartTime(bestBlock.getHeader().getTime() + addTime);
         } else {
-            round.setStartTime(round.getPreviousRound().getEndTime() + addTime);
+            round.setStartTime(round.getPreviousRound().getEndTime());
         }
         round.setIndex(lastRoundData.getRoundIndex() + 1);
         return round;

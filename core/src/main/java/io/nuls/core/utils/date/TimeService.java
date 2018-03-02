@@ -29,6 +29,7 @@ import io.nuls.core.utils.log.Log;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * @author vivi
@@ -40,6 +41,7 @@ public class TimeService implements Runnable {
 
     private TimeService() {
         webTimeUrl = "http://www.baidu.com";
+        READ_WRITE_LOCK = new ReentrantReadWriteLock();
         start();
     }
 
@@ -67,6 +69,8 @@ public class TimeService implements Runnable {
 
     private boolean running;
 
+    private static ReentrantReadWriteLock READ_WRITE_LOCK;
+
 
     public void start() {
         Log.info("----------- network timeService start -------------");
@@ -76,6 +80,7 @@ public class TimeService implements Runnable {
     }
 
     private void syncWebTime() {
+        READ_WRITE_LOCK.writeLock().lock();
         try {
             long localBeforeTime = System.currentTimeMillis();
             URL url = new URL(webTimeUrl);
@@ -86,11 +91,13 @@ public class TimeService implements Runnable {
             long localEndTime = System.currentTimeMillis();
 
             netTimeOffset = (netTime + (localEndTime - localBeforeTime) / 2) - localEndTime;
-
+            System.out.println("-------------------netTimeOffset:" + netTimeOffset);
             lastSyncTime = localEndTime;
         } catch (IOException e) {
             // 1 minute later try again
             lastSyncTime = lastSyncTime + 60000L;
+        } finally {
+            READ_WRITE_LOCK.writeLock().unlock();
         }
     }
 
@@ -118,13 +125,21 @@ public class TimeService implements Runnable {
     }
 
     public static long currentTimeMillis() {
-        return System.currentTimeMillis() + netTimeOffset;
+        READ_WRITE_LOCK.readLock().lock();
+        try {
+            return System.currentTimeMillis() + netTimeOffset;
+        } finally {
+            READ_WRITE_LOCK.readLock().unlock();
+        }
     }
 
     public static long currentTimeSeconds() {
         return currentTimeMillis() / 1000;
     }
 
+    public static long getNetTimeOffset() {
+        return netTimeOffset;
+    }
 
     public void shutdown() {
         this.running = false;
